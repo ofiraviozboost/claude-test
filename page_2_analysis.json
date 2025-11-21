@@ -7,7 +7,7 @@
     "applicant": "סלטי רומי",
     "description": "תוספת למבנה קיים",
     "details_url": "https://vaada.hof-hasharon.co.il/PermitApplicationDetails?Definement_Entity_Type=72&Entity_Type=P&Entity_Number=20250004",
-    "matches_status": false
+    "matches_status": true
   },
   {
     "permit_number": "בקשה מקוונת ללא הקלות ‏1‏\\‏20240353‏",
@@ -17,7 +17,7 @@
     "applicant": "מורן יובל",
     "description": "שינויים ללא תוספת",
     "details_url": "https://vaada.hof-hasharon.co.il/PermitApplicationDetails?Definement_Entity_Type=71&Entity_Type=P&Entity_Number=20240353",
-    "matches_status": false
+    "matches_status": true
   },
   {
     "permit_number": "בקשה מקוונת עם הקלות ‏1‏\\‏20240347‏",

@@ -25,7 +25,7 @@ class PermitSearcher:
         })
 
         # Status filters - looking for completed permits
-        self.target_statuses = ["הושלם", "היתר", "טופס 4"]
+        self.target_statuses = ["הושלם", "היתר", "טופס 4", "החלטה לאשר", "הפקת אגרה"]
 
         # Keywords to search for in permit details
         self.keywords = ["פל״ח", "בריכה", "פלח"]

@@ -26,7 +26,7 @@ def analyze_page_html(html_file):
     rows = table.find_all('tr')[1:]
 
     permits = []
-    target_statuses = ["הושלם", "היתר", "טופס 4", "היתר/טופס 4"]
+    target_statuses = ["הושלם", "היתר", "טופס 4", "היתר/טופס 4", "החלטה לאשר", "הפקת אגרה"]
 
     print("=" * 80)
     print(f"ניתוח עמוד - נמצאו {len(rows)} בקשות")
