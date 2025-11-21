@@ -1,0 +1,52 @@
+[
+  {
+    "permit_number": "בקשה מקוונת עם הקלות ‏1‏\\‏20250004‏",
+    "status": "החלטה לאשר",
+    "address": "רחוב סמ הרקפת 6, רשפון, שכונה: הרחבה",
+    "parcel_info": "גוש: 8921, חלקה: 119, מגרש: 101, תוכנית: חש/במ/17/13",
+    "applicant": "סלטי רומי",
+    "description": "תוספת למבנה קיים",
+    "details_url": "https://vaada.hof-hasharon.co.il/PermitApplicationDetails?Definement_Entity_Type=72&Entity_Type=P&Entity_Number=20250004",
+    "matches_status": false
+  },
+  {
+    "permit_number": "בקשה מקוונת ללא הקלות ‏1‏\\‏20240353‏",
+    "status": "הפקת אגרה",
+    "address": "רחוב דרך הפרדס , רשפון, שכונה: הרחבה",
+    "parcel_info": "גוש: 8922, חלקה: 41, מגרש: 47, תוכנית: חש/במ/17/13",
+    "applicant": "מורן יובל",
+    "description": "שינויים ללא תוספת",
+    "details_url": "https://vaada.hof-hasharon.co.il/PermitApplicationDetails?Definement_Entity_Type=71&Entity_Type=P&Entity_Number=20240353",
+    "matches_status": false
+  },
+  {
+    "permit_number": "בקשה מקוונת עם הקלות ‏1‏\\‏20240347‏",
+    "status": "בדיקה מרחבית אינה תקינה",
+    "address": "רחוב הפרחים 43, רשפון",
+    "parcel_info": "גוש: 6675, חלקה: 489",
+    "applicant": "רמי אבולעפיה",
+    "description": "בנייה חדשה",
+    "details_url": "https://vaada.hof-hasharon.co.il/PermitApplicationDetails?Definement_Entity_Type=72&Entity_Type=P&Entity_Number=20240347",
+    "matches_status": false
+  },
+  {
+    "permit_number": "בקשה מקוונת עם הקלות ‏1‏\\‏20240346‏",
+    "status": "בדיקה מרחבית אינה תקינה",
+    "address": "רחוב הכפר 14, רשפון, שכונה: הרחבה",
+    "parcel_info": "גוש: 8922, חלקה: 55, מגרש: 29, תוכנית: חש/במ/17/13",
+    "applicant": "אלון שמשי",
+    "description": "תוספת למבנה קיים",
+    "details_url": "https://vaada.hof-hasharon.co.il/PermitApplicationDetails?Definement_Entity_Type=72&Entity_Type=P&Entity_Number=20240346",
+    "matches_status": false
+  },
+  {
+    "permit_number": "בקשה מקוונת עם הקלות ‏1‏\\‏20240338‏",
+    "status": "לאחר פרסום עמידה בתנאים מוקדמים",
+    "address": "רשפון, שכונה: הרחבה",
+    "parcel_info": "גוש: 8921, חלקה: 94, מגרש: 76, תוכנית: חש/במ/17/13",
+    "applicant": "נתן וולפרט",
+    "description": "הקמת תשתיות",
+    "details_url": "https://vaada.hof-hasharon.co.il/PermitApplicationDetails?Definement_Entity_Type=72&Entity_Type=P&Entity_Number=20240338",
+    "matches_status": false
+  }
+]
