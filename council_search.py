@@ -43,7 +43,8 @@ class CouncilSearchBot:
         self.context = await self.browser.new_context(
             # הגדרות נוספות לעבודה עם אתרים ישראליים
             locale='he-IL',
-            timezone_id='Asia/Jerusalem'
+            timezone_id='Asia/Jerusalem',
+            ignore_https_errors=True  # עקיפת בעיות SSL
         )
 
     async def close(self):
@@ -102,11 +103,10 @@ class CouncilSearchBot:
         """בניית URL לחיפוש עם מספר עמוד"""
         base_url = "https://vaada.hof-hasharon.co.il/SearchPermitApplicationResults/"
         params = {
-            'searchType': 'ByTitle',
+            'searchType': 'ByAddress',
             'AddressPlace': '247',  # מושב רשפון
-            'GushID': '',
-            'HelkaID': '',
-            'MigrashID': '',
+            'AddressStreet': '',
+            'AddressStreetNumber': '',
             'page': str(page_num)
         }
 
@@ -352,7 +352,7 @@ async def main():
     print("🏗️  בוט חיפוש בקשות בניה - ועדה מקומית חוף השרון")
     print("=" * 60)
 
-    bot = CouncilSearchBot(headless=False)  # headless=True להרצה ברקע
+    bot = CouncilSearchBot(headless=True)  # headless=True להרצה ברקע
 
     try:
         await bot.start()
