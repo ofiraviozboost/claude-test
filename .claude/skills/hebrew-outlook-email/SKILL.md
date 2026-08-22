@@ -5,9 +5,26 @@ description: Compose a Hebrew (or other RTL-language) email through the Microsof
 
 # Hebrew / RTL email via the Outlook M365 connector
 
-## The hard constraint — read this before trying to fix "ugly" formatting
+## Preferred solution — `bodyType: "text"`, not `"html"`
 
-The Outlook connector (`outlook_create_draft`, `outlook_update_draft`,
+**Default to plain text (`bodyType: "text"`) for a Hebrew/RTL email through
+this connector.** Confirmed in real use (19.08.2026): HTML bodies go through
+a sanitizer that strips every `style=`/`dir=` attribute (see below), leaving
+Hebrew paragraphs with no directionality hint — Outlook then renders them
+with scrambled word order, worst in lines mixing Hebrew and Latin (company
+names, etc). Plain text has no such problem: it goes through Outlook's
+ordinary text pipeline and auto-renders RTL correctly with no extra effort.
+
+So don't reach for HTML first and try to work around the sanitizer — start
+with plain text. Reach for HTML only when the email genuinely needs
+structure the plain-text pipeline can't give it (a real table, a hyperlink
+with custom display text) — and if you do, expect the limitations in the
+next section.
+
+## The HTML sanitizer — read this before trying to fix "ugly" HTML formatting
+
+If you do need an HTML body, know the hard constraint first. The Outlook
+connector (`outlook_create_draft`, `outlook_update_draft`,
 `outlook_send_mail`) sanitizes every HTML body against a narrow allowlist
 **before** it ever reaches Outlook:
 
