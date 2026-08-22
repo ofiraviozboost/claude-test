@@ -50,13 +50,17 @@ Since font/color/spacing are off the table, get visual quality from
 - Use real `<h2>`/`<h3>` for section headers, not a bold first sentence.
   Outlook's default heading styles (bold, larger, some margin) already read
   as "designed" without a single style attribute.
-- Use `<table>` for anything that's a small set of labeled numbers (the
-  key finding, a few stats). An unstyled table still lays out in a clean
-  grid — no visible borders, but consistent column alignment reads far
-  better than a wall of paragraph text with numbers buried inline.
+- **Avoid `<table>` for Hebrew content — confirmed broken in real testing.**
+  Without `dir`, a table's cells fall back to LTR base direction even
+  though surrounding paragraphs correctly auto-detect RTL. That mismatch
+  garbles punctuation-adjacent Hebrew: `סה"כ פער בתוספות` rendered back as
+  `כ פער בתוספות"סה` — the gershayim (`"`) and word order scrambled. Use
+  `<ul>`/`<li>` for labeled numbers instead (`<li><b>סה"כ: 217,000 ₪</b></li>`)
+  — bullets correctly right-align in the same test where the table did not.
 - Use `<ul>`/`<ol>` for anything enumerable instead of writing "1. ... 2.
   ..." inline in a paragraph — Outlook's default list indentation and
-  bullet styling is decent on its own.
+  bullet styling is decent on its own, and (per above) actually renders
+  Hebrew correctly where tables don't.
 - Keep paragraphs short (2–3 sentences). Structural whitespace is the only
   "breathing room" you can add without CSS.
 - Bold (`<b>`/`<strong>`) the one number or phrase that matters most in a
