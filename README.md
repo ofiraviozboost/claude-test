@@ -169,20 +169,38 @@ pip install -r requirements.txt
 uvicorn whatsapp_agent.app:app --reload --port 8000
 ```
 
-## שלב 3: חשיפת השרת לאינטרנט (לפיתוח)
+## שלב 3: פריסה לשרת עם כתובת ציבורית קבועה
 
-Meta דורש webhook עם HTTPS ציבורי. לפיתוח מקומי אפשר [ngrok](https://ngrok.com/):
+Meta דורש webhook עם HTTPS ציבורי וקבוע. הריפו כולל `Dockerfile` מוכן, כך שאפשר לפרוס לכל פלטפורמת ענן שתומכת ב-Docker.
 
+### פריסה ל-Render (הכי פשוט)
+
+1. היכנס ל-[Render](https://render.com/) → New → Web Service → חבר את הריפו הזה.
+2. Render יזהה אוטומטית את `render.yaml` שבשורש הריפו (Blueprint) - או שתגדיר ידנית: Environment = Docker, Dockerfile Path = `./Dockerfile`.
+3. במסך ה-Environment Variables, הזן את הסודות מ-`.env.example`: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `ANTHROPIC_API_KEY`.
+4. Deploy. תקבל כתובת קבועה כמו `https://whatsapp-claude-agent.onrender.com`.
+
+### פריסה ל-Fly.io / VPS
+
+אותו `Dockerfile` עובד גם שם:
 ```bash
-ngrok http 8000
+docker build -t whatsapp-claude-agent .
+docker run -p 8000:8000 --env-file .env whatsapp-claude-agent
 ```
+ב-VPS תצטרך גם reverse proxy עם TLS (למשל Caddy/nginx + Let's Encrypt) כדי לקבל HTTPS.
 
-תקבל כתובת כמו `https://xxxx.ngrok-free.app`.
+### בדיקה מקומית לפני פריסה (אופציונלי)
+
+לבדיקה מהירה בלי לפרוס בכלל אפשר להריץ מקומית עם [ngrok](https://ngrok.com/) לחשיפה זמנית:
+```bash
+uvicorn whatsapp_agent.app:app --reload --port 8000
+ngrok http 8000   # מייצר כתובת זמנית כמו https://xxxx.ngrok-free.app
+```
 
 ## שלב 4: רישום ה-webhook ב-Meta
 
 בעמוד "WhatsApp → Configuration" באפליקציה:
-- Callback URL: `https://xxxx.ngrok-free.app/webhook`
+- Callback URL: `https://<הכתובת-שקיבלת>/webhook`
 - Verify Token: אותו ערך שקבעת ב-`WHATSAPP_VERIFY_TOKEN`
 - לחץ Verify and Save, ואז הירשם (Subscribe) לשדה `messages`.
 
@@ -193,6 +211,5 @@ ngrok http 8000
 ## הערות לפני מעבר לפרודקשן
 
 - מספר הבדיקה של Meta מוגבל ל-5 נמענים רשומים מראש. למספר אמיתי צריך אימות עסק (Business Verification) והוספת מספר טלפון קבוע.
-- הרצה בפרודקשן דורשת שרת עם HTTPS אמיתי (לא ngrok) - למשל פריסה ל-Render/Fly.io/VM עם reverse proxy.
-- ה-`WHATSAPP_TOKEN` וה-`ANTHROPIC_API_KEY` הם סודות רגישים - לעולם אל תעלה אותם ל-git (הם כבר ב-`.gitignore` דרך `.env`).
-- הזיכרון בין הודעות (`whatsapp_agent/claude_client.py`) נשמר כרגע בזיכרון התהליך בלבד ונמחק בכל restart - לשימוש רציני שווה להעביר לאחסון קבוע (Redis/DB).
+- ה-`WHATSAPP_TOKEN` וה-`ANTHROPIC_API_KEY` הם סודות רגישים - לעולם אל תעלה אותם ל-git (הם כבר ב-`.gitignore` דרך `.env`), והזן אותם רק דרך משתני הסביבה של פלטפורמת האחסון.
+- הזיכרון בין הודעות (`whatsapp_agent/claude_client.py`) נשמר כרגע בזיכרון התהליך בלבד ונמחק בכל restart/deploy - לשימוש רציני שווה להעביר לאחסון קבוע (Redis/DB).
