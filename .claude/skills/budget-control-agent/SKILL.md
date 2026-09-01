@@ -33,7 +33,7 @@ manual findings alongside the agent's own.
 | ספקים | 1833590066 | Supplier cards. |
 | פרויקטים | 1833582108 | The central (small, legacy-ish) project record; several other boards' `board_relation` columns point here. |
 
-## The four checks
+## The five checks
 
 1. **Addendum expense with no addendum income** (the main one). Sum
    `"תוספות"`-tagged supplier costs per project (board 1833596135), then check
@@ -52,6 +52,20 @@ manual findings alongside the agent's own.
    worth calling out by name and age.
 4. **Zero-amount collections**. A known data-entry bug: an active collection
    row with amount 0 after VAT. Flag for cleanup/deletion.
+5. **Negative balance in גביה מלקוחות** (found 26/08/2026, real production
+   incident). Board 1833585475's `formula_mm5ze81z` ("יתרה") is normally 0 or
+   positive (amount still owed). A **negative** value is the signature of a
+   digit-entry typo in the receipt/receivable amount — e.g. a secretary typing
+   an extra digit turns a ₪7,400 collection into ₪74,000, so
+   `formula_mm5zk7fv` ("סה"כ התקבל") massively overshoots the actual invoice
+   (`numeric_mm63dtj2`, "אחרי מע"מ") and the client appears to have overpaid
+   by tens of thousands of shekels. This doesn't just misstate one row — it
+   makes the client show up with a duplicate/extra balance entry elsewhere in
+   the debtors view. Query board 1833585475 for `formula_mm5ze81z < 0` (get
+   the full board with `includeColumns` on that column via `get_board_items_page`
+   itemIds/paging, or `board_insights` with a `lower_than` filter on
+   `formula_mm5ze81z`) and surface every hit by name — this is always worth a
+   look, there's no "before you flag" exception for it like check #1 has.
 
 ## Before you flag a gap — check these first
 
@@ -85,13 +99,82 @@ of this audit and the numbers dropped by more than half after checking.
   scope. Income (and sometimes the addendum billing) frequently lives under
   only one of the two, while supplier expense lines get split across both.
   Before concluding a "zero income" project is a real gap, search for a
-  same-client sibling project (same name, different suffix), pull its
-  subitems, and unify both sides — income + expense, base + addendum — across
-  the pair. Often the combined income already covers the combined expense.
+  same-client sibling project (same name, different suffix — token-match on
+  the client's name across board 5097957084's item names and board
+  1833596135's resolved `board_relation_mknbf3qk` labels), pull its subitems,
+  and unify both sides — income + expense, base + addendum — across the pair.
+  Often the combined income already covers the combined expense.
+  **But unifying the totals is not the same as confirming each sibling is
+  correctly billed** — check the *per-sibling* breakdown too, not just the
+  sum. A real case (אודי קרמר, 26/08/2026): unified addendum income (₪18,460)
+  exceeded unified addendum expense (₪14,514), looking fully resolved — but
+  broken down per sibling, one project ("היתר בית שלישי") held all ₪18,460 of
+  income while the other two siblings had ₪0 income against real supplier
+  costs (₪6,372 + ₪5,310). The aggregate zeroing-out was masking two real
+  gaps. Always show the per-sibling table before calling a unified group
+  "resolved".
+- **Watch for duplicate/orphaned project records for the same client.** A
+  quick giveaway: two items on board 5097957084 for what's obviously the same
+  contract, one with only a single "ראשוני" subitem and no board_relation
+  link to the legacy project board (`board_relation_mm41nt85` empty), the
+  other fully fleshed out (linked, multiple subitems, matching base amount).
+  The empty one is almost always an abandoned early stub — verify its sole
+  subitem's amount matches the real one exactly (it usually does, no unique
+  data to lose), then archive it with a raw GraphQL mutation via
+  `all_api_write`: `mutation { archive_item(item_id: $id) { id } }`. Archiving
+  is reversible (Monday's archive, not delete) — always archive, never
+  hard-delete, and never do this without the user confirming first which one
+  to keep.
 - **A prior acknowledged write-off stays written off.** If the client already
   said "yes, that one's a mistake, we're eating the cost" for a specific
   project (check the methodology doc for these), don't re-flag it — note it
   as accepted-loss and move on.
+
+## Cross-checking against Masterplan (the actual billing/collections system)
+
+Monday's "חוזה תוספת" subitems record what *should* have been billed; the
+real source of truth for what was actually invoiced and collected is
+Masterplan, a separate system the user exports manually as `.xls` (old
+coarse `תת חוזה` category field) or a richer `.xls` with a free-text `תיאור
+חשבון` per line, grouped by `לקוח:` header blocks. When the user hands over
+such a file:
+
+- Parse it with `pandas.read_excel` (install `xlrd`/`openpyxl` if missing —
+  neither is preinstalled). The richer client-grouped format needs a manual
+  parser: forward-fill the client name from `לקוח:` header rows, keep only
+  rows where the project-number column parses as numeric.
+- Classify each line as base vs. addendum by keyword match on the
+  description: `מדיד`, `יועצ`, `עורך בקשה`, `פענוח`, `אגרות`, `תוספת` →
+  addendum; everything else → base. A line combining both (e.g. `תב"ע שלב ב'
+  + עדכון מדידה`) can't be split automatically — flag it as "mixed" and
+  either ask the user for the split (they often know it, e.g. "1,500 מזה
+  שייך למדידה") or leave it out of the addendum sum with a note.
+- Compare the addendum total actually collected (Masterplan, status `סגור`)
+  against Monday's addendum expense for that project (unified across
+  siblings). The difference is very often *not* a real gap — the billing
+  happened, it just was never entered as a `חוזה תוספת` subitem in Monday.
+
+**Fixing a confirmed gap**: if Masterplan shows real collected addendum
+billing missing from Monday, create the missing subitem(s) on 5097957141
+(`create_items`, `parentItemId` = the project's item on 5097957084,
+`color_mm41p5e` = `{"label":"חוזה תוספת"}`, `numeric_mm41y19w` = amount) and
+set its milestone-1 fields to reflect it's already collected:
+`numeric_mm41j7np` (אחוז אבן דרך 1) = "100", `numeric_mm41v6kf` (סכום אבן
+דרך 1) = the amount, `color_mm41gw25` (יצירת גבייה 1) =
+`{"label":"שולם במאסטר"}`. **Never set that status to `"כן"`** (or leave it
+for a real "yes, create a real collection now" case) — `"כן"` triggers a live
+automation. `"שולם במאסטר"` is the safe label for "already collected outside
+Monday, no automation needed."
+
+**Stop at the contract/subitem level — do not touch גביה מלקוחות (1833585475)
+or תקבולים (5101045460) as part of a fix**, even to mark them
+"שולם במאסטר" there. Creating a גביה record on that board fires an automatic
+reminder to the client regardless of the status you set (confirmed directly
+by the user, 26/08/2026) — there's a "יצרת תקבול" button and a
+"שליחת תזכורת" mechanism on that board that make it unsafe to touch during
+an audit fix. Batch-entering גביה/תקבול for everything already marked
+"שולם במאסטר" is a separate, deliberate task the user does on their own
+schedule — never bundle it into a subitem-level fix.
 
 ## SharePoint contract verification
 
