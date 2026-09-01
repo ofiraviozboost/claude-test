@@ -141,3 +141,75 @@ await page.goto(url, wait_until='networkidle', timeout=60000)  # 60 שניות
 ## רישיון
 
 MIT License
+
+---
+
+# סוכן Claude מחובר ל-WhatsApp
+
+תיקיית `whatsapp_agent/` מכילה שרת webhook (FastAPI) שמחבר בין **WhatsApp Cloud API הרשמי של Meta** לבין **Claude API**: הודעה שמגיעה בוואטסאפ נשלחת ל-Claude, והתשובה נשלחת בחזרה כהודעת וואטסאפ.
+
+> ⚠️ זה נבנה מול ה-API **הרשמי** של Meta בלבד. אין כאן שום שימוש בספריות "אוטומציה" לא רשמיות שמחקות משתמש (סיכון לחסימת חשבון), ואין הרצת סקריפטים חיצוניים ממקורות לא מאומתים.
+
+## שלב 1: הגדרת WhatsApp Cloud API ב-Meta
+
+1. היכנס ל-[Meta for Developers](https://developers.facebook.com/) וצור אפליקציה חדשה מסוג "Business".
+2. הוסף את המוצר **WhatsApp** לאפליקציה.
+3. בעמוד "API Setup" תמצא **מספר טלפון בדיקה (test number)** בחינם, ואת ה-**Phone Number ID** שלו.
+4. צור **Permanent Access Token**: לך ל-Business Settings → System Users → צור System User → הענק לו הרשאות `whatsapp_business_messaging` על האפליקציה → Generate Token (בלי תפוגה).
+5. ב-App Settings → Basic, שמור את ה-**App Secret** (ישמש לאימות חתימת ה-webhook).
+
+## שלב 2: הגדרת סביבת העבודה המקומית
+
+```bash
+cp .env.example .env
+# ערוך את .env ומלא: WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_APP_SECRET, ANTHROPIC_API_KEY
+# ל-WHATSAPP_VERIFY_TOKEN בחר בעצמך מחרוזת אקראית - היא רק סיסמה בינך לבין Meta
+
+pip install -r requirements.txt
+uvicorn whatsapp_agent.app:app --reload --port 8000
+```
+
+## שלב 3: פריסה לשרת עם כתובת ציבורית קבועה
+
+Meta דורש webhook עם HTTPS ציבורי וקבוע. הריפו כולל `Dockerfile` מוכן, כך שאפשר לפרוס לכל פלטפורמת ענן שתומכת ב-Docker.
+
+### פריסה ל-Render (הכי פשוט)
+
+1. היכנס ל-[Render](https://render.com/) → New → Web Service → חבר את הריפו הזה.
+2. Render יזהה אוטומטית את `render.yaml` שבשורש הריפו (Blueprint) - או שתגדיר ידנית: Environment = Docker, Dockerfile Path = `./Dockerfile`.
+3. במסך ה-Environment Variables, הזן את הסודות מ-`.env.example`: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `ANTHROPIC_API_KEY`.
+4. Deploy. תקבל כתובת קבועה כמו `https://whatsapp-claude-agent.onrender.com`.
+
+### פריסה ל-Fly.io / VPS
+
+אותו `Dockerfile` עובד גם שם:
+```bash
+docker build -t whatsapp-claude-agent .
+docker run -p 8000:8000 --env-file .env whatsapp-claude-agent
+```
+ב-VPS תצטרך גם reverse proxy עם TLS (למשל Caddy/nginx + Let's Encrypt) כדי לקבל HTTPS.
+
+### בדיקה מקומית לפני פריסה (אופציונלי)
+
+לבדיקה מהירה בלי לפרוס בכלל אפשר להריץ מקומית עם [ngrok](https://ngrok.com/) לחשיפה זמנית:
+```bash
+uvicorn whatsapp_agent.app:app --reload --port 8000
+ngrok http 8000   # מייצר כתובת זמנית כמו https://xxxx.ngrok-free.app
+```
+
+## שלב 4: רישום ה-webhook ב-Meta
+
+בעמוד "WhatsApp → Configuration" באפליקציה:
+- Callback URL: `https://<הכתובת-שקיבלת>/webhook`
+- Verify Token: אותו ערך שקבעת ב-`WHATSAPP_VERIFY_TOKEN`
+- לחץ Verify and Save, ואז הירשם (Subscribe) לשדה `messages`.
+
+## שלב 5: בדיקה
+
+שלח הודעת WhatsApp למספר הבדיקה (מהמכשיר שרשמת כ"Recipient" ב-API Setup). ההודעה תעבור ל-Claude והתשובה תחזור אוטומטית.
+
+## הערות לפני מעבר לפרודקשן
+
+- מספר הבדיקה של Meta מוגבל ל-5 נמענים רשומים מראש. למספר אמיתי צריך אימות עסק (Business Verification) והוספת מספר טלפון קבוע.
+- ה-`WHATSAPP_TOKEN` וה-`ANTHROPIC_API_KEY` הם סודות רגישים - לעולם אל תעלה אותם ל-git (הם כבר ב-`.gitignore` דרך `.env`), והזן אותם רק דרך משתני הסביבה של פלטפורמת האחסון.
+- הזיכרון בין הודעות (`whatsapp_agent/claude_client.py`) נשמר כרגע בזיכרון התהליך בלבד ונמחק בכל restart/deploy - לשימוש רציני שווה להעביר לאחסון קבוע (Redis/DB).

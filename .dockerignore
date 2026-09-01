@@ -1,0 +1,7 @@
+.git
+.env
+__pycache__/
+*.pyc
+council_search*.csv
+council_search*.json
+*.md
