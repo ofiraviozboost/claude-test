@@ -266,6 +266,25 @@ sandbox (there's no other reliable HTML→PDF path here: no weasyprint, no
 playwright python/node package — only the raw Chromium binary and a
 LibreOffice `soffice` that renders styled HTML tables poorly).
 
+## Onboarding a new report recipient (rule added 10/09/2026)
+
+The first time any of these reports goes to someone who hasn't received one
+before — a new name added to a distribution list, not just a routine weekly
+run to existing recipients — send them a **full-context email first**, not
+just that week's delta. A bare "here's what changed" email is meaningless to
+someone with no baseline (real incident: office@boost-k.com got a "gap
+dropped from ₪216,847 to ₪206,758" delta and had no idea what the ₪200K even
+was or what was expected of her). The onboarding email should cover: what
+this audit checks and why (base price vs. addendum billing, money leaking
+when a supplier gets paid but the client isn't billed to match), the current
+total and its breakdown by project, which parts are confirmed real vs. still
+being verified, what's already been fixed, and what's actually expected of
+*this* recipient (usually: receive the weekly update for visibility, flag
+back if they know a business reason for a specific gap, and for
+office/finance-facing recipients specifically, help chase the concrete
+collections anomalies — negative balances, paid-but-open-balance rows).
+Only send the routine's normal weekly delta after that.
+
 ## Contacts (context only — never message these people without being asked)
 
 - עידן טיטו — idan@boost-k.com
