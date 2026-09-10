@@ -61,11 +61,31 @@ manual findings alongside the agent's own.
    (`numeric_mm63dtj2`, "אחרי מע"מ") and the client appears to have overpaid
    by tens of thousands of shekels. This doesn't just misstate one row — it
    makes the client show up with a duplicate/extra balance entry elsewhere in
-   the debtors view. Query board 1833585475 for `formula_mm5ze81z < 0` (get
-   the full board with `includeColumns` on that column via `get_board_items_page`
-   itemIds/paging, or `board_insights` with a `lower_than` filter on
-   `formula_mm5ze81z`) and surface every hit by name — this is always worth a
-   look, there's no "before you flag" exception for it like check #1 has.
+   the debtors view. Query with `board_insights`, `groupBy: ["name"]`,
+   filter `formula_mm5ze81z` `lower_than` a threshold. **Use a threshold
+   around -500, not 0** — dozens of rows sit at -0.0001 to -20 from ordinary
+   VAT/rounding noise (confirmed 03/09/2026 weekly run) and are not real;
+   anything beyond roughly -₪500 is worth surfacing.
+6. **Collection rows with missing required links** (added 10/09/2026). A row
+   on 1833585475 should always have a linked project
+   (`board_relation_mknbkdj3`, "פרויקט מקושר") and a linked client
+   (`board_relation_mknba1sh`, "לקוח מקושר"). `board_insights` with
+   `groupBy: ["name"]` and a filter `operator: "is_empty"` on either column
+   finds rows missing one — these can't be tied back to a project/client for
+   reconciliation and should be filled in.
+7. **Zero-amount collections created in the last week**. Same zero-amount bug
+   as check #4, but scoped to freshly-created rows so it surfaces promptly:
+   filter `__creation_log__` `within_the_last` `["DAYS", 7]` AND
+   `numeric_mm63dtj2` ("אחרי מע"מ") `any_of` `[0]`.
+8. **"Paid" status with an open balance** (found 10/09/2026, real production
+   incident). A row whose `color_mknbj3g2` ("סטטוס") is `"תשלום מלא"` or
+   `"תשלום מלא - אוטומטי"` should have `formula_mm5ze81z` ("יתרה") at ~0 — the
+   status says fully paid, the balance should be settled. Filter
+   `formula_mm5ze81z` `greater_than` `0.5` (again, ignore sub-shekel rounding
+   noise) AND `color_mknbj3g2` `any_of` the "paid" label indexes; a hit means
+   the row was marked paid without the payment actually being reconciled
+   against it. Real example: "היתרים - ירון דה קלו - בסיס - אבן דרך 3" marked
+   `"תשלום מלא - אוטומטי"` with a ₪25,488 balance still open.
 
 ## Before you flag a gap — check these first
 
@@ -211,6 +231,22 @@ before deciding a gap is real vs. a classification error.
   saved to a local file instead of being printed — read it with `jq` or a
   short python script via Bash, not by paging through it line-by-line with
   Read (each row is one giant line).
+
+## Department collections report (separate deliverable, added 10/09/2026)
+
+A distinct recurring report the user asked for alongside the gap audit —
+"how much did each department collect" (creation-based, not payment-based:
+counts every collection row *created* in the period regardless of whether
+it's actually been paid yet). Board 1833585475 already computes this:
+`formula_mkxc2qw4` ("שם המחלקה") derives department from the row's
+`multiple_person_mkw76eqf` owner via a `SWITCH` (מכירות / פרויקטים / מקצועית
+/ "-" for unmapped people) — `board_insights` `groupBy` on it, `SUM` on
+`numeric_mm633pmh` ("לפני מע"מ"), filtered by `__creation_log__`
+`within_the_last` (`["DAYS", 7]` weekly, or the equivalent date range for
+"previous calendar month" on a monthly run). This is a **separate email from
+the gap-audit report** — don't merge them, the user explicitly asked for two
+distinct emails on two cadences (every Thursday, and again on the 1st of the
+month for the prior month).
 
 ## Output
 
