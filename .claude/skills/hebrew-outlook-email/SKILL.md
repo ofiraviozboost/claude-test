@@ -83,6 +83,37 @@ Since font/color/spacing are off the table, get visual quality from
 - Bold (`<b>`/`<strong>`) the one number or phrase that matters most in a
   paragraph — that's the only emphasis tool available.
 
+## Tone and formatting for plain-text reports (rule added 15/09/2026)
+
+The user gave direct feedback that recurring report emails (weekly audits,
+findings summaries) need to be **more businesslike and easier to scan** —
+not a wall of prose. Since plain text (the preferred `bodyType`) has no bold,
+headers, or indentation styling, get scannability from **layout alone**:
+
+- One short opening line, not a paragraph — say what this email is, nothing
+  more (e.g. "דוח בקרה תקציבית שבועי." not three sentences of preamble).
+- A bare number/name label per line for each finding, blank line between
+  groups — not comma-joined lists or nested prose. Something like:
+
+  ```
+  יתרה שלילית (מעל ₪500):
+  - סיגל דרויש - היוון: -₪22,184
+  ```
+
+  reads faster than folding the same fact into a sentence.
+- Lead each section with a short label line (a colon-terminated phrase
+  standing alone reads as a heading even without markup — `<sender>` isn't
+  needed, whitespace before/after does the job).
+- State the total once, right after its list, not repeated in a closing
+  summary paragraph.
+- Cut any sentence that just restates something the reader already knows
+  from the subject line or a prior email — every line should carry a new
+  fact.
+- Full-context onboarding emails (see `budget-control-agent`'s "Onboarding a
+  new report recipient" section) are the one exception where more prose is
+  appropriate — a first-time recipient genuinely needs the explanation. The
+  recurring weekly delta itself should stay lean.
+
 ## No attachments
 
 `outlook_send_draft` explicitly re-validates against "no attachments" before
