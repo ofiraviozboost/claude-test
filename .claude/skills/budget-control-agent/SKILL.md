@@ -32,8 +32,11 @@ manual findings alongside the agent's own.
 | פקודות לתשלום לספקים | 1833597366 | Supplier payment-order status (`color_mknb8pn5`: שולם / ממתין לאישור / etc.) and whether an invoice was received (`color_mknbvjys`). |
 | ספקים | 1833590066 | Supplier cards. |
 | פרויקטים | 1833582108 | The central (small, legacy-ish) project record; several other boards' `board_relation` columns point here. |
+| ניהול הצעות מחיר | 5089970441 | Incoming supplier quotes for a specific task line item (a "form" board employees fill when soliciting quotes). `text_mkzxkxxd` = quote price (text, needs parsing), `board_relation_mm1r6b6y` links to the specific task on `1833889753` that the quote is for. |
+| Subitems of משימות | 1833889753 | ~22,746 line-item tasks across all projects (huge — filter/join, don't page the whole thing). `numeric_mm1frh7x` = budget for that specific line item; `color_mm0t4xnk` = `"נבחר"`/`"לא נבחר"` (was this the supplier actually selected for the job); `board_relation_mkzqs6bp` links to the supplier; `board_relation_mm1ydggd` ("סעיף תמחור") links to the product/pricing catalog (`1994018147`). |
+| מוצרים ראשי | 1994018147 | ~93-row product/pricing catalog (one row per sellable line item, e.g. "היתרים - תכנון חדש - בית מגורים חדש - עד 100 מ״ר"). `numeric_mkngwarn` = client unit price; `numeric_mm1egskc`/`numeric_mm1fcvvc`/`numeric_mm1fn4wg`/`numeric_mm1f5p49` = per-role internal cost budget (מהנדס/תכנון/שרטוט/עורך בקשה); `numeric_mm4afczy` ("סה"כ עלות פרויקט") is *supposed* to be the sum of those four but see check 10. |
 
-## The five checks
+## The ten checks
 
 1. **Addendum expense with no addendum income** (the main one). Sum
    `"תוספות"`-tagged supplier costs per project (board 1833596135), then check
@@ -86,6 +89,30 @@ manual findings alongside the agent's own.
    the row was marked paid without the payment actually being reconciled
    against it. Real example: "היתרים - ירון דה קלו - בסיס - אבן דרך 3" marked
    `"תשלום מלא - אוטומטי"` with a ₪25,488 balance still open.
+9. **Closed supplier quote exceeds its task budget** (added 15/09/2026). On
+   5089970441, for each quote row where the linked task
+   (`board_relation_mm1r6b6y`) shows `color_mm0t4xnk` = `"נבחר"` (this
+   specific quote is the one actually closed with the supplier), parse
+   `text_mkzxkxxd` (quote price — free text, may include "+ מע"מ"/commas/
+   "ש"ח", strip and regex out the number) and compare to that task's
+   `numeric_mm1frh7x` (budget) on 1833889753. `get_board_items_page` can't
+   read `board_relation_mm1r6b6y`'s target directly as a value (multi-item
+   board_relation), but it **does** return the linked item's `id`/`name` in
+   `column_values.board_relation_mm1r6b6y[0]` — use that id to fetch the
+   task's own `numeric_mm1frh7x` in a second call. A budget of `0`/null on the
+   task is a separate finding (see check 10) — don't call it an "overrun",
+   the budget was simply never set.
+10. **Product catalog's cost-rollup field is unused** (found 15/09/2026,
+    structural gap). 1994018147's `numeric_mm4afczy` ("סה"כ עלות פרויקט") is
+    meant to be the sum of the four per-role cost columns
+    (`numeric_mm1egskc`+`numeric_mm1fcvvc`+`numeric_mm1fn4wg`+`numeric_mm1f5p49`)
+    but it's a **plain manual number field, not a formula**, and confirmed
+    empty on all ~93 products with no exception. There is no live
+    calculation anywhere that rolls per-role supplier costs up into a
+    validated line-item budget — this is the direct root cause of check 9's
+    "budget = 0" cases. Don't just report this once; re-check it each run (a
+    fix would be someone finally populating it, or converting it to a real
+    `formula` column) and note whether it's still unpopulated.
 
 ## Before you flag a gap — check these first
 
